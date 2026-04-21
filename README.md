@@ -33,9 +33,9 @@ MRA_IA_Segmentation_Tool/
 │   ├─ fold_3/
 │   └─ fold_4/
 └─ README.md
+```
 
 ## Basic usage
-
 ```shell
 "MRA IA Segmentation Tool.exe" -i INPUT_PATH -o OUTPUT_PATH -m MODEL_PATH
 ```
