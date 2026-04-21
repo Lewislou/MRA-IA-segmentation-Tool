@@ -2,6 +2,14 @@
 
 MRA IA Segmentation Tool is a command-line application for intracranial aneurysm segmentation from MRA images.
 
+## Download
+
+The software package can be downloaded from Baidu Netdisk:
+
+Link: https://pan.baidu.com/s/1Mt-pkrDpcSrNRUppM6j14Q?pwd=76gq Pswd: 76gq 
+
+
+
 ## Features
 
 - Supports single `.nii.gz` file input
