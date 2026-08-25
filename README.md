@@ -1,75 +1,107 @@
-# Zjnu_IA_Seg_Tool
+# SMD-Net
 
-MRA IA Segmentation Tool is a command-line application for intracranial aneurysm segmentation from MRA images.
+SAM-guided Multi-view Decoding Network for 3D TOF-MRA intracranial aneurysm segmentation.
 
-## Download
-
-The software package can be downloaded from Baidu Netdisk:
-
-Link: https://pan.baidu.com/s/1Mt-pkrDpcSrNRUppM6j14Q?pwd=76gq Pswd: 76gq 
-
-
-
-## Features
-
-- Supports single `.nii.gz` file input
-- Supports batch prediction from a folder
-- Supports CPU and CUDA device selection
-- Automatically handles Chinese paths for input, output, and model folders
-- Saves segmentation results in NIfTI format
+Built on [nnU-Net v2](https://github.com/MIC-DKFZ/nnUNet). Launch SMD-Net with `MODEL_NAME=smdnet`.
 
 ## Requirements
 
-- Windows
-- Model files in the `checkpoints` folder, or specify a custom model folder
-- Input images in `.nii.gz` format
+- Python >= 3.9
+- PyTorch >= 2.0 (CUDA recommended)
+- [segment_anything](https://github.com/facebookresearch/segment-anything) (SAM ViT-B)
+- Optional fallback encoder: [MobileSAM](https://github.com/ChaoningZhang/MobileSAM)
 
-## Folder Structure
+```bash
+conda create -n smdnet python=3.10 -y
+conda activate smdnet
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+pip install -e .
+pip install git+https://github.com/facebookresearch/segment-anything.git
+pip install git+https://github.com/ChaoningZhang/MobileSAM.git timm
+```
 
-Example:
+Place SAM ViT-B weights as:
 
 ```text
-MRA_IA_Segmentation_Tool/
-│
-├─ MRA IA Segmentation Tool.exe
-├─ checkpoints/
-│   ├─ dataset.json
-│   ├─ plans.json
-│   ├─ fold_0/
-│   ├─ fold_1/
-│   ├─ fold_2/
-│   ├─ fold_3/
-│   └─ fold_4/
-└─ README.md
+$nnUNet_raw/sam_vit_b_01ec64.pth
 ```
 
-## Basic usage
-```shell
-"MRA IA Segmentation Tool.exe" -i INPUT_PATH -o OUTPUT_PATH -m MODEL_PATH
+Or set `SAM_VIT_B_WEIGHTS=/path/to/sam_vit_b_01ec64.pth`.
+
+For a lighter encoder during debugging:
+
+```bash
+export SAM_ENCODER=vit_t
 ```
 
-## Force CPU
-```shell
-"MRA IA Segmentation Tool.exe" -i INPUT_PATH -o OUTPUT_PATH -m MODEL_PATH -dev cpu
+## Environment
+
+```bash
+export nnUNet_raw=/path/to/nnUNet_raw
+export nnUNet_preprocessed=/path/to/nnUNet_preprocessed
+export nnUNet_results=/path/to/nnUNet_results
+export MODEL_NAME=smdnet
+export PYTHONPATH=$PWD:$PYTHONPATH
 ```
 
-## Force GPU
-```shell
-"MRA IA Segmentation Tool.exe" -i INPUT_PATH -o OUTPUT_PATH -m MODEL_PATH -dev gpu
-```
-## Auto selection
-```shell
-"MRA IA Segmentation Tool.exe" -i INPUT_PATH -o OUTPUT_PATH -m MODEL_PATH -dev auto
+Prepare data in nnU-Net format, then:
+
+```bash
+nnUNetv2_plan_and_preprocess -d DATASET_ID --verify_dataset_integrity
 ```
 
-## Source codes and training
-The source codes of this model and the training process will be released soon.
+## Train
 
-## License
+Single fold:
 
-Distributed under the terms of the [BSD-3](http://opensource.org/licenses/BSD-3-Clause) license,"Zjnu_IA_Seg_Tool" is free and open source software
+```bash
+CUDA_VISIBLE_DEVICES=0 python -m nnunetv2.run.run_training 504 3d_lowres 0
+```
 
-## Issues
+Five-fold:
 
-If you encounter any problems, please [file an issue] along with a detailed description.
+```bash
+bash scripts/run_smdnet_5fold.sh
+```
 
+Smoke test (1 iteration, no checkpoint):
+
+```bash
+bash scripts/smoke_train.sh
+```
+
+Training defaults for `MODEL_NAME=smdnet`:
+
+| Item | Value |
+|------|-------|
+| Optimizer | AdamW |
+| Learning rate | 3e-4 |
+| Weight decay | 1e-4 |
+| Schedule | cosine annealing |
+| Epochs | 600 |
+| Loss | λ_v L_vessel + λ_a L_aneurysm (Dice + Focal, γ=2) |
+| λ_v / λ_a | 1.0 / 1.0 (`SMDNET_LAMBDA_V`, `SMDNET_LAMBDA_A`) |
+
+## Inference
+
+```bash
+export INPUT_FOLDER=/path/to/imagesTs
+export OUTPUT_FOLDER=/path/to/predictions
+export MODEL_FOLDER=/path/to/nnUNetTrainer__nnUNetPlans__3d_lowres
+bash scripts/predict.sh
+```
+
+## Evaluation
+
+Lesion-level detection metrics (IoU matching):
+
+```bash
+python scripts/evaluate_detection.py \
+  --gt_folder /path/to/labelsTs \
+  --pred_folder /path/to/predictions \
+  --output_csv /path/to/metrics.csv
+```
+
+## Citation
+
+If you use this code, please cite the corresponding JCMR manuscript and nnU-Net.
