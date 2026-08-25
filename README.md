@@ -9,7 +9,6 @@ Built on [nnU-Net v2](https://github.com/MIC-DKFZ/nnUNet). Launch SMD-Net with `
 - Python >= 3.9
 - PyTorch >= 2.0 (CUDA recommended)
 - [segment_anything](https://github.com/facebookresearch/segment-anything) (SAM ViT-B)
-- Optional fallback encoder: [MobileSAM](https://github.com/ChaoningZhang/MobileSAM)
 
 ```bash
 conda create -n smdnet python=3.10 -y
@@ -58,29 +57,9 @@ Single fold:
 CUDA_VISIBLE_DEVICES=0 python -m nnunetv2.run.run_training 504 3d_lowres 0
 ```
 
-Five-fold:
-
-```bash
-bash scripts/run_smdnet_5fold.sh
-```
-
-Smoke test (1 iteration, no checkpoint):
-
-```bash
-bash scripts/smoke_train.sh
-```
 
 Training defaults for `MODEL_NAME=smdnet`:
 
-| Item | Value |
-|------|-------|
-| Optimizer | AdamW |
-| Learning rate | 3e-4 |
-| Weight decay | 1e-4 |
-| Schedule | cosine annealing |
-| Epochs | 600 |
-| Loss | λ_v L_vessel + λ_a L_aneurysm (Dice + Focal, γ=2) |
-| λ_v / λ_a | 1.0 / 1.0 (`SMDNET_LAMBDA_V`, `SMDNET_LAMBDA_A`) |
 
 ## Inference
 
@@ -102,6 +81,3 @@ python scripts/evaluate_detection.py \
   --output_csv /path/to/metrics.csv
 ```
 
-## Citation
-
-If you use this code, please cite the corresponding JCMR manuscript and nnU-Net.
